@@ -41,56 +41,131 @@ Constraints:
 Node.random is null or is pointing to some node in the linked list.
 
 ------------------------------------------------------------------------------------------------
-SOLUTION = class Solution {
-public:
-    Node* copyRandomList(Node* head) {
-        if (!head) return nullptr;
-        
-        unordered_map<Node*, Node*> old_to_new;
-        
-        Node* curr = head;
-        while (curr) {
-            old_to_new[curr] = new Node(curr->val);
-            curr = curr->next;
-        }
-        
-        curr = head;
-        while (curr) {
-            old_to_new[curr]->next = old_to_new[curr->next];
-            old_to_new[curr]->random = old_to_new[curr->random];
-            curr = curr->next;
-        }
-        
-        return old_to_new[head];
-    }
-};
+SOLUTION = /**
+ * Definition for a Node.
+ * struct Node {
+ *     int val;
+ *     struct Node *next;
+ *     struct Node *random;
+ * };
+ */
+
+// Remark:
+
+// The task of this problem is "deep copy". To understand what "deep copy"
+// means, a good method is comparison, i.e., to think of what's a 
+// "shallow copy" first, then observe the difference between it and
+// the requirement of "deep copy"
+
+// The term, "shallow copy", in this context just mean the most primitive
+// and unsophilsicated copy method, i.e., to create a new list which
+// shares the same length with the original one, and copy all involved 
+// values, namely val and random, node by node.
+
+// To make the new list to be "linked" we mustn't copy the next value
+// but make them point to the next node in the new list.
+
+// At this stage, everything perfectly meets the requirement but the 
+// "random pointers",which still point to the nodes in the original list
+
+// Then, we must reason out the gap between the current stage and the
+// final one. It's not diffcult to perceive that although the random
+// pointers in our current copied list are not pointing to the correct
+// positions in the copied list. But they do point to the correct
+// positions in the original list. Say, for a random pointer which should
+// point to the third node in the copied list now is pointing to the 
+// third node in the original list. What makes the situation better
+// is that the pointers which are supposed be "NULL" are already "NULL".
+
+// So, the objective at this stage is crystal clear: to establish a 
+// connection between the corresponding nodes in both lists. It's not
+// difficult to find out that the only means is pointer
+
+// Since we are dealing with the issue caused by the random pointers,
+// it will make perfect sense should we make use of the random pointers
+// themselves to address this problem.
+
+// As we've mentioned before, the address value itself held by a random
+// pointer in the original list is of no importance whatsoever but the
+// relative position of the node it points to. Since it has already been
+// copied to the new list, what we can do is, upon creating a new node
+// and copying the address value held by the random pointer in the old
+// node into the new node, we can now make the old random value point to
+// the new-born node. For example, when we have created the first node
+// of the new list and already copied everything we need, we can now
+// make random pointer of first node of the original list point to
+// the first node of the new list. Through doing so, we
+
+// 1. establish a connection between the correspoding nodes in both lists
+// which is the key to our problem
+
+// 2. do not violate the integerity of any information needful of copying
+
+// Now, we just need to tranverse the new list and perform but one 
+// operation: node->random = node->random->random if (node->random)
+// node->random is the corresponding node in the original list of
+// the node in the new list whose address value node->random is supposed
+// to hold
+// By the mentioned technique, node->random->random stores the address
+// value of the correspoding and correct node in the new list.
+// So, now, all random pointers in the new list have been correctly set.
+
+struct Node* copyRandomList(struct Node* head) {
+  if(!head)
+    return head;
+  struct Node* p0 = NULL;
+  struct Node* p1 = NULL;
+  struct Node* newHead = (struct Node*) malloc(sizeof(struct Node));
+  newHead->val = head->val;
+  newHead->next = NULL;
+  newHead->random = head->random;
+  head->random = newHead;
+  struct Node* p2 = newHead;
+  for(p0 = head->next;p0;p0 = p0->next){
+    p1 = (struct Node*) malloc(sizeof(struct Node));
+    p1->val = p0->val;
+    p1->next = NULL;
+    p1->random = p0->random;
+    p2->next = p1;
+    p2 = p1;
+    p0->random = p1;
+  }
+  for(p1 = newHead;p1;p1 = p1->next)
+    if(p1->random)
+      p1->random = p1->random->random;
+  return newHead;
+}
 
 -------------------------Explanation :-
 Purpose:
 
-This code creates a deep copy of a linked list with a random pointer, where each node has a value, a next pointer, and a random pointer that can point to any node in the list (or nullptr).
+This code creates a deep copy of a linked list with random pointers, meaning it creates a completely independent copy of the list with its own nodes and pointers.
 Function Breakdown:
 
 Handles Empty List:
 
-Returns nullptr if the input list is empty.
-Creates Node Map:
+Returns NULL if the input list is empty.
+Creates Head Node:
 
-Initializes an unordered_map called old_to_new to store mappings between original nodes and their corresponding copied nodes.
-Creates New Nodes:
+Allocates memory for a new head node (newHead).
+Copies the val and random pointers from the original head node to the new head node.
+Updates the original head node's random pointer to point to the new head node, creating a temporary link for later use.
+Iterates and Creates Nodes:
 
-Iterates through the original list:
-For each node, creates a new node with the same value and stores the mapping in old_to_new.
-Links New Nodes:
+Iterates through the original list, starting from the second node:
+Allocates memory for a new node (p1).
+Copies the val and random pointers from the current original node to the new node.
+Appends the new node to the copied list.
+Updates the original node's random pointer to point to the corresponding new node, continuing the temporary links.
+Fixes Random Pointers:
 
-Iterates through the original list again:
-Sets the next and random pointers of each copied node using the mappings in old_to_new, effectively recreating the structure of the list with new nodes.
-Returns Copied List Head:
+Iterates through the copied list:
+If the current node's random pointer is not NULL, it sets it to point to the corresponding node in the copied list using the temporary links.
+Returns Copied List:
 
-Returns the head of the copied list, retrieved from old_to_new.
+Returns the head of the newly created copied list.
 Key Points:
 
-Deep Copy: Creates a completely independent copy of the list, not just shallow references.
-Handling random Pointers: Successfully replicates the random pointers in the copied list.
-Hash Map for Mapping: Uses a hash map to efficiently store and retrieve node mappings during the copying process.
-Time and Space Complexity: O(n) time complexity, where n is the number of nodes, due to linear traversal. O(n) space complexity for the hash map.
+Deep Copy: Ensures complete independence of the copied list.
+Random Pointer Handling: Uses a clever technique to establish temporary links between corresponding nodes in both lists, allowing correct copying of random pointers.
+Time and Space Complexity: O(n) time complexity and O(1) space complexity, making it efficient for large lists.
